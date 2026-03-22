@@ -33,7 +33,7 @@ class GameScene extends Phaser.Scene {
 
     // Camera follow
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    this.cameras.main.setZoom(0.9);
+    this.cameras.main.setZoom(1.2);
 
     // Room label text
     this.roomLabel = this.add.text(0, 0, '', {
@@ -58,7 +58,7 @@ class GameScene extends Phaser.Scene {
       fontSize: '11px',
       fontFamily: 'monospace',
       color: '#888888',
-    }).setScrollFactor(0).setPosition(10, 570).setDepth(2000);
+    }).setScrollFactor(0).setPosition(10, 770).setDepth(2000);
 
     // Title
     this.add.text(0, 0, 'OFFICE QUEST', {
@@ -66,7 +66,7 @@ class GameScene extends Phaser.Scene {
       fontFamily: 'monospace',
       fontStyle: 'bold',
       color: '#e74c3c',
-    }).setScrollFactor(0).setPosition(680, 10).setDepth(2000);
+    }).setScrollFactor(0).setPosition(1100, 10).setDepth(2000);
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -112,13 +112,13 @@ class GameScene extends Phaser.Scene {
 
   gridToIso(gridX, gridY) {
     // Convert grid coordinates to isometric screen coordinates
-    const isoX = (gridX - gridY) * (TILE_W / 2) + 600; // offset to center
+    const isoX = (gridX - gridY) * (TILE_W / 2) + 900; // offset to center
     const isoY = (gridX + gridY) * (TILE_H / 2);
     return { x: isoX, y: isoY };
   }
 
   isoToGrid(isoX, isoY) {
-    const adjustedX = isoX - 600;
+    const adjustedX = isoX - 900;
     const gridX = Math.round((adjustedX / (TILE_W / 2) + isoY / (TILE_H / 2)) / 2);
     const gridY = Math.round((isoY / (TILE_H / 2) - adjustedX / (TILE_W / 2)) / 2);
     return { x: gridX, y: gridY };
@@ -261,8 +261,8 @@ class GameScene extends Phaser.Scene {
 // Game config
 const config = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: 1280,
+  height: 800,
   parent: document.body,
   backgroundColor: '#1a1a2e',
   scene: [GameScene],
