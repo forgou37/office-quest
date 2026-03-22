@@ -5,8 +5,8 @@ import { FLOOR1_MAP, TILE_TEXTURES, WALKABLE, ROOM_LABELS, POI } from './floor1M
 class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
-    this.playerGridX = 20;  // Start at entrance
-    this.playerGridY = 28;
+    this.playerGridX = 21;  // Start at entrance
+    this.playerGridY = 37;
     this.isMoving = false;
     this.moveSpeed = 150; // ms per tile
   }
