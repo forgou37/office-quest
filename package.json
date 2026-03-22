@@ -1,0 +1,16 @@
+{
+  "name": "office-quest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "phaser": "^3.90.0",
+    "vite": "^8.0.1"
+  }
+}
