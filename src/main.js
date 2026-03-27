@@ -54,7 +54,7 @@ class GameScene extends Phaser.Scene {
     const playerPos = this.gridToIso(this.playerGridX, this.playerGridY);
     this.player = this.add.image(playerPos.x, playerPos.y - 16, 'character');
     this.player.setDepth(1000);
-    this.player.setScale(1);
+    this.player.setScale(2);
 
     // Camera
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
