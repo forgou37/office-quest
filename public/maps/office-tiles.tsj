@@ -1,0 +1,72 @@
+{
+  "columns": 0,
+  "grid": {
+    "height": 32,
+    "orientation": "isometric",
+    "width": 64
+  },
+  "margin": 0,
+  "name": "office-tiles",
+  "spacing": 0,
+  "tilecount": 9,
+  "tileheight": 32,
+  "tilewidth": 64,
+  "tiles": [
+    {
+      "id": 0,
+      "image": "../tiles/wall.png",
+      "imageheight": 44,
+      "imagewidth": 64
+    },
+    {
+      "id": 1,
+      "image": "../tiles/floor_lounge.png",
+      "imageheight": 32,
+      "imagewidth": 64
+    },
+    {
+      "id": 2,
+      "image": "../tiles/floor_kitchen.png",
+      "imageheight": 32,
+      "imagewidth": 64
+    },
+    {
+      "id": 3,
+      "image": "../tiles/floor_understairs.png",
+      "imageheight": 32,
+      "imagewidth": 64
+    },
+    {
+      "id": 4,
+      "image": "../tiles/floor_workspace.png",
+      "imageheight": 32,
+      "imagewidth": 64
+    },
+    {
+      "id": 5,
+      "image": "../tiles/floor_corridor.png",
+      "imageheight": 32,
+      "imagewidth": 64
+    },
+    {
+      "id": 6,
+      "image": "../tiles/floor_toilet.png",
+      "imageheight": 32,
+      "imagewidth": 64
+    },
+    {
+      "id": 7,
+      "image": "../tiles/floor_stairs.png",
+      "imageheight": 32,
+      "imagewidth": 64
+    },
+    {
+      "id": 8,
+      "image": "../tiles/floor_balcony.png",
+      "imageheight": 32,
+      "imagewidth": 64
+    }
+  ],
+  "type": "tileset",
+  "version": "1.10"
+}
