@@ -17,6 +17,10 @@ class GameScene extends Phaser.Scene {
     this.dialogActive = false;
     this.dialogChoices = [];
     this.dialogNpcId = null;
+    // Click-to-move path
+    this.currentPath = null;
+    this.pathIndex = 0;
+    this.pendingInteraction = null;
     // Systems
     this.questManager = new QuestManager();
     this.inventory = new Inventory();
@@ -74,7 +78,7 @@ class GameScene extends Phaser.Scene {
     }).setScrollFactor(0).setDepth(2000);
 
     // Controls
-    this.add.text(10, 770, '← → ↑ ↓  рух  |  SPACE  взаємодія  |  1/2/3  вибір', {
+    this.add.text(10, 770, '🖱️ клік — рух/взаємодія  |  ← → ↑ ↓  рух  |  SPACE  взаємодія  |  1/2/3  вибір', {
       fontSize: '11px', fontFamily: 'monospace', color: '#888888',
     }).setScrollFactor(0).setDepth(2000);
 
@@ -116,6 +120,132 @@ class GameScene extends Phaser.Scene {
     this.dialogTitle = null;
     this.dialogText = null;
     this.dialogChoiceTexts = [];
+
+    // Mouse click-to-move
+    this.input.on('pointerdown', (pointer) => {
+      if (this.dialogActive) {
+        // Click closes dialog if no choices
+        if (this.dialogChoices.length === 0) {
+          this.closeDialog();
+        }
+        return;
+      }
+      if (this.isMoving) {
+        // Cancel current path and start new one
+        this.currentPath = null;
+      }
+
+      const worldX = pointer.worldX;
+      const worldY = pointer.worldY;
+      const grid = this.isoToGrid(worldX, worldY);
+
+      // Check if clicked on NPC — interact instead of moving
+      for (const npc of Object.values(NPC_DEFS)) {
+        if (npc.gridX === grid.x && npc.gridY === grid.y) {
+          // Walk to adjacent tile, then interact
+          const adjTiles = [
+            { x: npc.gridX, y: npc.gridY - 1 },
+            { x: npc.gridX, y: npc.gridY + 1 },
+            { x: npc.gridX - 1, y: npc.gridY },
+            { x: npc.gridX + 1, y: npc.gridY },
+          ].filter(t => this.canWalk(t.x, t.y));
+
+          if (adjTiles.length > 0) {
+            // Find closest adjacent tile
+            adjTiles.sort((a, b) => {
+              const da = Math.abs(a.x - this.playerGridX) + Math.abs(a.y - this.playerGridY);
+              const db = Math.abs(b.x - this.playerGridX) + Math.abs(b.y - this.playerGridY);
+              return da - db;
+            });
+            const target = adjTiles[0];
+            // Already adjacent?
+            if (target.x === this.playerGridX && target.y === this.playerGridY) {
+              this.showNpcDialog(npc);
+            } else {
+              const path = this.findPath(this.playerGridX, this.playerGridY, target.x, target.y);
+              if (path) {
+                this.pendingInteraction = { type: 'npc', data: npc };
+                this.moveAlongPath(path);
+              }
+            }
+          }
+          return;
+        }
+      }
+
+      // Check if clicked on a visible world item
+      for (const item of Object.values(WORLD_ITEMS)) {
+        const sprite = this.worldItemSprites[item.id];
+        if (sprite && sprite.visible && item.gridX === grid.x && item.gridY === grid.y) {
+          const adjTiles = [
+            { x: item.gridX, y: item.gridY - 1 },
+            { x: item.gridX, y: item.gridY + 1 },
+            { x: item.gridX - 1, y: item.gridY },
+            { x: item.gridX + 1, y: item.gridY },
+            { x: item.gridX, y: item.gridY },
+          ].filter(t => this.canWalk(t.x, t.y));
+
+          if (adjTiles.length > 0) {
+            adjTiles.sort((a, b) => {
+              const da = Math.abs(a.x - this.playerGridX) + Math.abs(a.y - this.playerGridY);
+              const db = Math.abs(b.x - this.playerGridX) + Math.abs(b.y - this.playerGridY);
+              return da - db;
+            });
+            const target = adjTiles[0];
+            if (target.x === this.playerGridX && target.y === this.playerGridY) {
+              this.pickupItem(item);
+            } else {
+              const path = this.findPath(this.playerGridX, this.playerGridY, target.x, target.y);
+              if (path) {
+                this.pendingInteraction = { type: 'item', data: item };
+                this.moveAlongPath(path);
+              }
+            }
+          }
+          return;
+        }
+      }
+
+      // Check POI
+      const clickedPoi = POI.find(p => p.x === grid.x && p.y === grid.y);
+      if (clickedPoi) {
+        const adjTiles = [
+          { x: clickedPoi.x, y: clickedPoi.y - 1 },
+          { x: clickedPoi.x, y: clickedPoi.y + 1 },
+          { x: clickedPoi.x - 1, y: clickedPoi.y },
+          { x: clickedPoi.x + 1, y: clickedPoi.y },
+          { x: clickedPoi.x, y: clickedPoi.y },
+        ].filter(t => this.canWalk(t.x, t.y));
+
+        if (adjTiles.length > 0) {
+          adjTiles.sort((a, b) => {
+            const da = Math.abs(a.x - this.playerGridX) + Math.abs(a.y - this.playerGridY);
+            const db = Math.abs(b.x - this.playerGridX) + Math.abs(b.y - this.playerGridY);
+            return da - db;
+          });
+          const target = adjTiles[0];
+          if (target.x === this.playerGridX && target.y === this.playerGridY) {
+            this.showSimpleDialog(clickedPoi.name, clickedPoi.desc);
+          } else {
+            const path = this.findPath(this.playerGridX, this.playerGridY, target.x, target.y);
+            if (path) {
+              this.pendingInteraction = { type: 'poi', data: clickedPoi };
+              this.moveAlongPath(path);
+            }
+          }
+        }
+        return;
+      }
+
+      // Just walk there
+      if (this.canWalk(grid.x, grid.y)) {
+        const path = this.findPath(this.playerGridX, this.playerGridY, grid.x, grid.y);
+        if (path) {
+          this.pendingInteraction = null;
+          this.moveAlongPath(path);
+        }
+      }
+    });
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -216,6 +346,140 @@ class GameScene extends Phaser.Scene {
     const isoX = (gridX - gridY) * (TILE_W / 2) + 900;
     const isoY = (gridX + gridY) * (TILE_H / 2);
     return { x: isoX, y: isoY };
+  }
+
+  isoToGrid(worldX, worldY) {
+    const a = (worldX - 900) / (TILE_W / 2);
+    const b = worldY / (TILE_H / 2);
+    return {
+      x: Math.round((a + b) / 2),
+      y: Math.round((b - a) / 2),
+    };
+  }
+
+  // === A* PATHFINDING ===
+  findPath(sx, sy, tx, ty) {
+    if (!this.canWalk(tx, ty)) return null;
+
+    const key = (x, y) => `${x},${y}`;
+    const open = [{ x: sx, y: sy, g: 0, h: 0, f: 0, parent: null }];
+    const closed = new Set();
+
+    const heuristic = (x, y) => Math.abs(x - tx) + Math.abs(y - ty);
+    open[0].h = heuristic(sx, sy);
+    open[0].f = open[0].h;
+
+    const dirs = [
+      { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+    ];
+
+    while (open.length > 0) {
+      // Find lowest f
+      let bestIdx = 0;
+      for (let i = 1; i < open.length; i++) {
+        if (open[i].f < open[bestIdx].f) bestIdx = i;
+      }
+      const current = open.splice(bestIdx, 1)[0];
+
+      if (current.x === tx && current.y === ty) {
+        // Reconstruct path (skip start position)
+        const path = [];
+        let node = current;
+        while (node.parent) {
+          path.unshift({ x: node.x, y: node.y });
+          node = node.parent;
+        }
+        return path;
+      }
+
+      closed.add(key(current.x, current.y));
+
+      for (const dir of dirs) {
+        const nx = current.x + dir.dx;
+        const ny = current.y + dir.dy;
+        if (closed.has(key(nx, ny))) continue;
+        if (!this.canWalk(nx, ny)) continue;
+
+        const g = current.g + 1;
+        const existing = open.find(n => n.x === nx && n.y === ny);
+        if (existing) {
+          if (g < existing.g) {
+            existing.g = g;
+            existing.f = g + existing.h;
+            existing.parent = current;
+          }
+        } else {
+          const h = heuristic(nx, ny);
+          open.push({ x: nx, y: ny, g, h, f: g + h, parent: current });
+        }
+      }
+
+      // Safety: don't search forever
+      if (closed.size > 2000) return null;
+    }
+    return null;
+  }
+
+  // === CLICK-TO-MOVE ===
+  moveAlongPath(path) {
+    if (!path || path.length === 0) return;
+    this.currentPath = path;
+    this.pathIndex = 0;
+    this.stepPath();
+  }
+
+  stepPath() {
+    if (!this.currentPath || this.pathIndex >= this.currentPath.length) {
+      this.currentPath = null;
+      this.pathIndex = 0;
+      return;
+    }
+
+    const next = this.currentPath[this.pathIndex];
+
+    // Check if path is still valid (something might have changed)
+    if (!this.canWalk(next.x, next.y)) {
+      this.currentPath = null;
+      return;
+    }
+
+    this.isMoving = true;
+    this.playerGridX = next.x;
+    this.playerGridY = next.y;
+    const targetPos = this.gridToIso(next.x, next.y);
+
+    this.tweens.add({
+      targets: this.player, x: targetPos.x, y: targetPos.y - 16,
+      duration: this.moveSpeed, ease: 'Linear',
+      onComplete: () => {
+        this.isMoving = false;
+        this.player.setDepth(next.y * 100 + next.x);
+        this.updateRoomLabel();
+        this.pathIndex++;
+        // Continue walking if no dialog triggered and path exists
+        if (!this.dialogActive && this.currentPath) {
+          if (this.pathIndex >= this.currentPath.length) {
+            // Path complete — trigger pending interaction
+            this.currentPath = null;
+            if (this.pendingInteraction) {
+              const pi = this.pendingInteraction;
+              this.pendingInteraction = null;
+              if (pi.type === 'npc') this.showNpcDialog(pi.data);
+              else if (pi.type === 'item') this.pickupItem(pi.data);
+              else if (pi.type === 'poi') this.showSimpleDialog(pi.data.name, pi.data.desc);
+            }
+          } else {
+            this.stepPath();
+          }
+        }
+      },
+    });
+    // Walk bounce
+    this.tweens.add({
+      targets: this.player, scaleY: 1.1,
+      duration: this.moveSpeed / 2, yoyo: true, ease: 'Sine.easeInOut',
+    });
   }
 
   canWalk(x, y) {
@@ -511,14 +775,18 @@ class GameScene extends Phaser.Scene {
       }
     }
 
-    // Movement
+    // Movement (cancel mouse path on keyboard input)
     if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+      this.currentPath = null; this.pendingInteraction = null;
       this.movePlayer(0, -1);
     } else if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) {
+      this.currentPath = null; this.pendingInteraction = null;
       this.movePlayer(0, 1);
     } else if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) {
+      this.currentPath = null; this.pendingInteraction = null;
       this.movePlayer(-1, 0);
     } else if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
+      this.currentPath = null; this.pendingInteraction = null;
       this.movePlayer(1, 0);
     }
 
@@ -563,3 +831,4 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
+window.__GAME__ = game;
