@@ -1,0 +1,15 @@
+[Unit]
+Description=Office Quest game
+After=network.target
+
+[Service]
+Type=simple
+User=ish
+WorkingDirectory=/home/ish/.openclaw/workspace/office-quest
+ExecStart=/usr/bin/node serve.js
+Restart=on-failure
+RestartSec=5
+Environment=GAME_PORT=3333
+
+[Install]
+WantedBy=multi-user.target

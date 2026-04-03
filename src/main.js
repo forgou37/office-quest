@@ -372,6 +372,8 @@ class GameScene extends Phaser.Scene {
     const dirs = [
       { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
       { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+      { dx: -1, dy: -1 }, { dx: 1, dy: -1 },
+      { dx: -1, dy: 1 }, { dx: 1, dy: 1 },
     ];
 
     while (open.length > 0) {
@@ -400,8 +402,14 @@ class GameScene extends Phaser.Scene {
         const ny = current.y + dir.dy;
         if (closed.has(key(nx, ny))) continue;
         if (!this.canWalk(nx, ny)) continue;
+        // Prevent diagonal corner-cutting through walls
+        if (dir.dx !== 0 && dir.dy !== 0) {
+          if (!this.canWalk(current.x + dir.dx, current.y) ||
+              !this.canWalk(current.x, current.y + dir.dy)) continue;
+        }
 
-        const g = current.g + 1;
+        const isDiag = dir.dx !== 0 && dir.dy !== 0;
+        const g = current.g + (isDiag ? 1.41 : 1);
         const existing = open.find(n => n.x === nx && n.y === ny);
         if (existing) {
           if (g < existing.g) {
